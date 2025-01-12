@@ -35,8 +35,8 @@ class PGNGameHeader:
     ECO: Optional[str] = None
     Opening: Optional[str] = None
 
-    PlayerTitle: Optional[str] = None
-    OpponentTitle: Optional[str] = None
+    WhiteTitle: Optional[str] = None
+    BlackTitle: Optional[str] = None
     Termination: Optional[str] = None
 
 
