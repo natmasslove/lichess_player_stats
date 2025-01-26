@@ -39,6 +39,8 @@ class PGNGameHeader:
     BlackTitle: Optional[str] = None
     Termination: Optional[str] = None
 
+    GameId: Optional[str] = None
+
 
 class GetGamesParams(TypedDict):
     # >= 1356998400070 Download games played since this timestamp. Defaults to account creation date
