@@ -7,27 +7,6 @@ import csv
 from helpers.lichess_api_helper import PGNGameHeader
 
 
-# useful methods for data processing pipeline
-# download games from API -> transform -> save to csv
-class PipelineHelper:
-    @staticmethod
-    def write_to_csv(game_headers: list[PGNGameHeader], file_path: str) -> None:
-        # Extract headers from PGNGameHeader fields
-        header_fields = [field.name for field in fields(PGNGameHeader)]
-
-        with open(file_path, mode="w", newline="", encoding="utf-8") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=header_fields)
-
-            # Write the headers to the first row
-            writer.writeheader()
-
-            # Write each game header as a row in the CSV
-            for game_header in game_headers:
-                writer.writerow(
-                    {field: getattr(game_header, field) for field in header_fields}
-                )
-
-
 @dataclass
 class PGNGameHeaderStandardized:
     Event: Optional[str] = None
@@ -151,52 +130,109 @@ class PGNGameHeaderStandardized:
             cls.split_opening(pgn_header.Opening)
         )
 
+        outp.WhiteTitle = pgn_header.WhiteTitle
+        outp.BlackTitle = pgn_header.BlackTitle
+        outp.Termination = pgn_header.Termination
+
         return outp
 
-        #################################
-        # stopped here
 
-        # Parse TimeControl field
+@dataclass
+class PGNGameHeaderPersonified:
+    # PGN Game Data from a perspective of a specific game participant
+    Event: Optional[str] = None
+    Site: Optional[str] = None
+    Date: Optional[str] = None
+    Round: Optional[str] = None
 
-        # Parse Opening field into main, sub, and variation
-        opening_main, opening_sub, opening_variation = None, None, None
-        if pgn_header.Opening:
-            parts = pgn_header.Opening.split(",")
-            opening_main = parts[0].strip() if len(parts) > 0 else None
-            opening_sub = parts[1].strip() if len(parts) > 1 else None
-            opening_variation = parts[2].strip() if len(parts) > 2 else None
+    Player: Optional[str] = None
+    Opponent: Optional[str] = None
+    Color: Optional[str] = None  # whether Player
 
-        # Return cleansed data
-        return cls(
-            Event=pgn_header.Event,
-            Site=pgn_header.Site,
-            Date=date,
-            Round=round_number,
-            White=pgn_header.White,
-            Black=pgn_header.Black,
-            Result=pgn_header.Result,
-            UTCDate=None,
-            Score=None,
-            WhiteElo=white_elo,
-            BlackElo=black_elo,
-            WhiteRatingDiff=(
-                int(pgn_header.WhiteRatingDiff)
-                if pgn_header.WhiteRatingDiff and pgn_header.WhiteRatingDiff.isdigit()
-                else None
-            ),
-            BlackRatingDiff=(
-                int(pgn_header.BlackRatingDiff)
-                if pgn_header.BlackRatingDiff and pgn_header.BlackRatingDiff.isdigit()
-                else None
-            ),
-            Variant=pgn_header.Variant,
-            TimeControlMinutes=time_control_minutes,
-            TimeControlIncrement=time_control_increment,
-            ECO=pgn_header.ECO,
-            OpeningMain=opening_main,
-            OpeningSub=opening_sub,
-            OpeningVariation=opening_variation,
-            WhiteTitle=pgn_header.WhiteTitle,
-            BlackTitle=pgn_header.BlackTitle,
-            Termination=pgn_header.Termination,
-        )
+    Result: Optional[float] = None  # "1" - Player's win, "0.5" - draw, "0" - Lose
+    UTCDateTime: Optional[datetime] = None
+    PlayerElo: Optional[int] = None
+    OpponentElo: Optional[int] = None
+    PlayerRatingChange: Optional[int] = None
+    OpponentRatingChange: Optional[int] = None
+
+    Variant: Optional[str] = None
+    TimeControl: Optional[str] = None
+
+    ECO: Optional[str] = None
+    OpeningFamily: Optional[str] = None
+    OpeningVariation: Optional[str] = None
+    OpeningSubVariation: Optional[str] = None
+
+    PlayerTitle: Optional[str] = None
+    OpponentTitle: Optional[str] = None
+    Termination: Optional[str] = None
+
+    @classmethod
+    def from_pgn_header_std(
+        cls, pgn_header_std: PGNGameHeaderStandardized, player_name: str
+    ):
+        outp = PGNGameHeaderPersonified()
+        if player_name not in [pgn_header_std.White, pgn_header_std.Black]:
+            raise ValueError(f"Player {player_name} is not in the game")
+
+        if player_name == pgn_header_std.White:
+            outp.Result = pgn_header_std.Result
+            outp.Player = pgn_header_std.White
+            outp.Opponent = pgn_header_std.Black
+            outp.Color = "White"
+            outp.PlayerElo = pgn_header_std.WhiteElo
+            outp.OpponentElo = pgn_header_std.BlackElo
+            outp.PlayerRatingChange = pgn_header_std.WhiteRatingChange
+            outp.OpponentRatingChange = pgn_header_std.BlackRatingChange
+            outp.PlayerTitle = pgn_header_std.WhiteTitle
+            outp.OpponentTitle = pgn_header_std.BlackTitle
+        else:
+            outp.Result = 1 - pgn_header_std.Result
+            outp.Player = pgn_header_std.Black
+            outp.Opponent = pgn_header_std.White
+            outp.Color = "Black"
+            outp.PlayerElo = pgn_header_std.BlackElo
+            outp.OpponentElo = pgn_header_std.WhiteElo
+            outp.PlayerRatingChange = pgn_header_std.BlackRatingChange
+            outp.OpponentRatingChange = pgn_header_std.WhiteRatingChange
+            outp.PlayerTitle = pgn_header_std.BlackTitle
+            outp.OpponentTitle = pgn_header_std.WhiteTitle
+
+        outp.Event = pgn_header_std.Event
+        outp.Site = pgn_header_std.Site
+        outp.Date = pgn_header_std.Date
+        outp.Round = pgn_header_std.Round
+        outp.UTCDateTime = pgn_header_std.UTCDateTime
+        outp.Variant = pgn_header_std.Variant
+        outp.TimeControl = pgn_header_std.TimeControl
+        outp.ECO = pgn_header_std.ECO
+        outp.OpeningFamily = pgn_header_std.OpeningFamily
+        outp.OpeningVariation = pgn_header_std.OpeningVariation
+        outp.OpeningSubVariation = pgn_header_std.OpeningSubVariation
+        outp.Termination = pgn_header_std.Termination
+
+        return outp
+
+
+# useful methods for data processing pipeline
+# download games from API -> transform -> save to csv
+class PipelineHelper:
+    @staticmethod
+    def write_to_csv(
+        game_headers: list[PGNGameHeaderPersonified], file_path: str
+    ) -> None:
+        # Extract headers from PGNGameHeader fields
+        header_fields = [field.name for field in fields(PGNGameHeaderPersonified)]
+
+        with open(file_path, mode="w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=header_fields)
+
+            # Write the headers to the first row
+            writer.writeheader()
+
+            # Write each game header as a row in the CSV
+            for game_header in game_headers:
+                writer.writerow(
+                    {field: getattr(game_header, field) for field in header_fields}
+                )
