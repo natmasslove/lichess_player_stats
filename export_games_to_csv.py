@@ -7,6 +7,7 @@ from helpers.lichess_api_helper import (
     LichessAPIHelper,
     APIParams_GetGames,
     PGNGameHeader,
+    ChessPerfType,
 )
 from helpers.pipeline_helper import (
     PipelineHelper,
@@ -31,7 +32,14 @@ if __name__ == "__main__":
         "--perf-type",
         required=False,
         default=None,
-        help="Lichess user whose games are exported",
+        help=f"Comma-separated games type to export. Valid values: {', '.join(variant.value for variant in ChessPerfType)}",
+    )
+    parser.add_argument(
+        "--max-games",
+        required=False,
+        default=None,
+        type=int,
+        help="Maximum number of games to export",
     )
     parser.add_argument(
         "--start-date",
@@ -46,6 +54,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     username = args.username
+    max_games = args.max_games
     try:
         perf_types = LichessAPIHelper.validate_perf_types(args.perf_type)
     except ValueError as e:
@@ -65,7 +74,7 @@ if __name__ == "__main__":
 
     # Prepare params for Lichess API call
     params = APIParams_GetGames(
-        max=100,
+        max=max_games,
         rated=True,
         perfType=perf_types,
         moves=False,
