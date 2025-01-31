@@ -18,12 +18,19 @@ dotenv.load_dotenv()
 lichess_api_token = os.environ["LICHESS_TOKEN"]
 
 if __name__ == "__main__":
+    # Parse parameters
     parser = argparse.ArgumentParser(
         description="Generate timestamps for a given date range."
     )
     parser.add_argument(
         "--username",
         required=True,
+        help="Lichess user whose games are exported",
+    )
+    parser.add_argument(
+        "--perf-type",
+        required=False,
+        default=None,
         help="Lichess user whose games are exported",
     )
     parser.add_argument(
@@ -39,6 +46,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     username = args.username
+    try:
+        perf_types = LichessAPIHelper.validate_perf_types(args.perf_type)
+    except ValueError as e:
+        print(f"Error: {e}")
+        exit(1)
 
     start_ts, end_ts = LichessAPIHelper.generate_timestamps_msec(
         args.start_date, args.end_date
@@ -46,6 +58,7 @@ if __name__ == "__main__":
 
     print(f"Exporting games of {username}")
     print(f"Period: ({args.start_date} 00:00:00) - ({args.end_date} 23:59:59)")
+    print(f"Type(s): {args.perf_type}")
     print("Note that download limit is 30-60 games per second, so be patient... :)")
 
     api_helper = LichessAPIHelper(lichess_api_token)
@@ -54,7 +67,7 @@ if __name__ == "__main__":
     params = APIParams_GetGames(
         max=100,
         rated=True,
-        perfType="blitz",
+        perfType=perf_types,
         moves=False,
         opening=True,
         since=start_ts,

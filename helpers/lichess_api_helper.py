@@ -1,5 +1,7 @@
 import io
 from datetime import datetime
+import enum
+
 
 from typing import Optional, TypedDict
 from dataclasses import dataclass
@@ -75,6 +77,23 @@ class APIParams_GetGames(TypedDict):
     opening: Optional[bool]
 
 
+class ChessPerfType(enum.Enum):
+    ULTRA_BULLET = "ultraBullet"
+    BULLET = "bullet"
+    BLITZ = "blitz"
+    RAPID = "rapid"
+    CLASSICAL = "classical"
+    CORRESPONDENCE = "correspondence"
+    CHESS960 = "chess960"
+    CRAZYHOUSE = "crazyhouse"
+    ANTICHESS = "antichess"
+    ATOMIC = "atomic"
+    HORDE = "horde"
+    KING_OF_THE_HILL = "kingOfTheHill"
+    RACING_KINGS = "racingKings"
+    THREE_CHECK = "threeCheck"
+
+
 class LichessAPIHelper(Exception):
     pass
 
@@ -100,6 +119,30 @@ class LichessAPIHelper:
         )
 
         return start_timestamp, end_timestamp
+
+    @classmethod
+    def validate_perf_types(cls, perf_types_str: str | None) -> str:
+        """
+        Validates a comma-separated string of chess perf-types (as of Lichess terminology).
+        Trims spaces, and returns a cleaned string
+        """
+        if not perf_types_str:  # Handles None or empty string
+            return None
+
+        valid_values = {perf_type.value for perf_type in ChessPerfType}
+        in_perf_types = [perf_type.strip() for perf_type in perf_types_str.split(",")]
+
+        invalid_perf_types = [
+            perf_type for perf_type in in_perf_types if perf_type not in valid_values
+        ]
+
+        if invalid_perf_types:
+            valid_list = ", ".join(valid_values)
+            raise ValueError(
+                f"PerfType(s) {', '.join(invalid_perf_types)} is not valid. Should be one of the following: {valid_list}"
+            )
+
+        return ",".join(in_perf_types)
 
     def get_games_headers(
         self, username: str, params: APIParams_GetGames
