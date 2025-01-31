@@ -51,7 +51,7 @@ class Urllib3Helper:
         url = self._get_api_url(api_path)
         if params:
             url += f"?{urlencode(params)}"
-        print(f"{url = }")
+
         headers = self._prep_headers(token)
 
         try:

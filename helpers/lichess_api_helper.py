@@ -1,10 +1,12 @@
 import io
+from datetime import datetime
+
 from typing import Optional, TypedDict
-from helpers.urllib3_helper import Urllib3Helper
 from dataclasses import dataclass
 
-from chess.pgn import read_game, read_headers
+from chess.pgn import read_game
 
+from helpers.urllib3_helper import Urllib3Helper
 
 BASE_URL = "https://lichess.org/"
 
@@ -42,7 +44,7 @@ class PGNGameHeader:
     GameId: Optional[str] = None
 
 
-class GetGamesParams(TypedDict):
+class APIParams_GetGames(TypedDict):
     # >= 1356998400070 Download games played since this timestamp. Defaults to account creation date
     since: Optional[int]
 
@@ -83,8 +85,24 @@ class LichessAPIHelper:
         self.base_url = BASE_URL
         self.req_helper = Urllib3Helper(BASE_URL)
 
+    @classmethod
+    def generate_timestamps_msec(cls, start_date: str, end_date: str):
+        # Convert string to datetime objects
+        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+
+        # Set times for start and end
+        start_timestamp = (
+            int(start_dt.replace(hour=0, minute=0, second=0).timestamp()) * 1000
+        )
+        end_timestamp = (
+            int(end_dt.replace(hour=23, minute=59, second=59).timestamp()) * 1000
+        )
+
+        return start_timestamp, end_timestamp
+
     def get_games_headers(
-        self, username: str, params: GetGamesParams
+        self, username: str, params: APIParams_GetGames
     ) -> list[PGNGameHeader]:
         api_path = f"api/games/user/{username}"
         pgn_response = self.req_helper.get(
