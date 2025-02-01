@@ -150,6 +150,9 @@ class PGNGameHeaderPersonified:
     Color: Optional[str] = None  # whether Player
 
     Result: Optional[float] = None  # "1" - Player's win, "0.5" - draw, "0" - Lose
+    ResultWin: Optional[int] = None
+    ResultDraw: Optional[int] = None
+    ResultLose: Optional[int] = None
     UTCDateTime: Optional[datetime] = None
     PlayerElo: Optional[int] = None
     OpponentElo: Optional[int] = None
@@ -198,6 +201,10 @@ class PGNGameHeaderPersonified:
             outp.OpponentRatingChange = pgn_header_std.WhiteRatingChange
             outp.PlayerTitle = pgn_header_std.BlackTitle
             outp.OpponentTitle = pgn_header_std.WhiteTitle
+
+        outp.ResultWin = 1 if outp.Result == 1 else 0
+        outp.ResultDraw = 1 if outp.Result == 0.5 else 0
+        outp.ResultLose = 1 if outp.Result == 0 else 0
 
         outp.Event = pgn_header_std.Event
         outp.Site = pgn_header_std.Site
