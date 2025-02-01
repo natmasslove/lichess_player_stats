@@ -12,7 +12,13 @@ To interact with the Lichess API, you need to generate a personal access token. 
 - Rename the file .env_default to .env.
 - Open .env and add your Lichess API token.
 
-3. **Run the Script to Export Games**  
+3. **Install Python packages**
+
+```bash
+pip install -r requirements.txt
+```
+
+4. **Run the Script to Export Games**  
 Use the `export_games_to_csv.py` script to fetch and save games in CSV format. The output file will be located at:
 `output/games.csv`.
  
