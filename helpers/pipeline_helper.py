@@ -1,6 +1,10 @@
 from datetime import datetime, timezone
-from dataclasses import fields, dataclass
+from dataclasses import fields, dataclass, asdict
 from typing import Optional
+
+import pandas as pd
+import pyarrow.parquet as pq
+import pyarrow as pa
 
 import csv
 
@@ -21,8 +25,8 @@ class PGNGameHeaderStandardized:
     UTCDateTime: Optional[datetime] = None
     WhiteElo: Optional[int] = None
     BlackElo: Optional[int] = None
-    WhiteRatingChange: Optional[int] = None
-    BlackRatingChange: Optional[int] = None
+    WhiteRatingChange: Optional[float] = None
+    BlackRatingChange: Optional[float] = None
 
     Variant: Optional[str] = None
     TimeControl: Optional[str] = None
@@ -54,6 +58,15 @@ class PGNGameHeaderStandardized:
             return None
         try:
             return int(value)
+        except ValueError:
+            return None
+
+    @classmethod
+    def str_to_float(cls, value: Optional[str]) -> Optional[float]:
+        if value is None or value.strip() == "":
+            return None
+        try:
+            return float(value)
         except ValueError:
             return None
 
@@ -109,7 +122,7 @@ class PGNGameHeaderStandardized:
         outp.White = pgn_header.White
         outp.Black = pgn_header.Black
 
-        results_map = {"1-0": 1, "0-1": 0, "1/2-1/2": 0.5}
+        results_map = {"1-0": 1.0, "0-1": 0.0, "1/2-1/2": 0.5}
         outp.Result = results_map.get(pgn_header.Result)
         outp.UTCDateTime = cls.join_utc_date_and_time(
             pgn_header.UTCDate, pgn_header.UTCTime
@@ -118,8 +131,8 @@ class PGNGameHeaderStandardized:
         outp.WhiteElo = cls.str_to_int(pgn_header.WhiteElo)
         outp.BlackElo = cls.str_to_int(pgn_header.BlackElo)
 
-        outp.WhiteRatingChange = cls.str_to_int(pgn_header.WhiteRatingDiff)
-        outp.BlackRatingChange = cls.str_to_int(pgn_header.BlackRatingDiff)
+        outp.WhiteRatingChange = cls.str_to_float(pgn_header.WhiteRatingDiff)
+        outp.BlackRatingChange = cls.str_to_float(pgn_header.BlackRatingDiff)
 
         outp.Variant = pgn_header.Variant
         outp.TimeControl = cls.parse_time_control(pgn_header.TimeControl)
@@ -156,8 +169,8 @@ class PGNGameHeaderPersonified:
     UTCDateTime: Optional[datetime] = None
     PlayerElo: Optional[int] = None
     OpponentElo: Optional[int] = None
-    PlayerRatingChange: Optional[int] = None
-    OpponentRatingChange: Optional[int] = None
+    PlayerRatingChange: Optional[float] = None
+    OpponentRatingChange: Optional[float] = None
 
     Variant: Optional[str] = None
     TimeControl: Optional[str] = None
@@ -243,3 +256,12 @@ class PipelineHelper:
                 writer.writerow(
                     {field: getattr(game_header, field) for field in header_fields}
                 )
+
+    @staticmethod
+    def write_to_parquet(
+        game_headers: list[PGNGameHeaderPersonified], file_path: str
+    ) -> None:
+        data = [asdict(game) for game in game_headers]
+        df = pd.DataFrame(data)
+        table = pa.Table.from_pandas(df)
+        pq.write_table(table, file_path)
