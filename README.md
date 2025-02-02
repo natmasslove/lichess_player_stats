@@ -26,14 +26,14 @@ Use the `export_games_to_csv.py` script to fetch and save games in CSV format. T
 Example Command:
 
 ```bash
-python export_games_to_csv.py --username masslove --start-date 2024-01-01 --end-date 2024-31-12
+python export_games.py --username masslove --start-date 2024-01-01 --end-date 2024-12-31
 ```
 Replace parameter values with your own.
 
 For the full list of parameters (such as filtering by "blitz"/"bullet" type only, etc.) - execute:
 
 ```bash
-python export_games_to_csv.py -h
+python export_games.py -h
 ```
 
 ## How to analyze downloaded games
