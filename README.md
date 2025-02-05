@@ -37,3 +37,10 @@ python export_games.py -h
 ```
 
 ## How to analyze downloaded games
+
+There are many ways to analyze downloaded file:
+
+1. Load CSV files in Microsoft Excel and, then, use Pivot tables for analysis
+2. Use BI tools like PowerBI desktop (which you can run for free on your computer) and load CSV file as a data source
+3. Use Jupyter notebook - see an example `csv_analysis.ipynb`
+4. Use query engines. One example could be AWS Athena.
