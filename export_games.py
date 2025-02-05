@@ -29,6 +29,25 @@ if __name__ == "__main__":
         help="Lichess user whose games are exported",
     )
     parser.add_argument(
+        "--format",
+        required=False,
+        help="Output format: csv or parquet",
+        default="csv",
+        choices=["csv", "parquet"],
+    )
+    parser.add_argument(
+        "--folder",
+        required=False,
+        help="Output folder name",
+        default="output",
+    )
+    parser.add_argument(
+        "--filename",
+        required=False,
+        help="Output file name",
+        default=None,
+    )
+    parser.add_argument(
         "--perf-type",
         required=False,
         default=None,
@@ -55,6 +74,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     username = args.username
     max_games = args.max_games
+    output_format = args.format
+    output_folder = args.folder
+    output_filename = f"{args.filename if args.filename else username}.{output_format}"  # by default: username.csv|parquet
+
     try:
         perf_types = LichessAPIHelper.validate_perf_types(args.perf_type)
     except ValueError as e:
@@ -81,6 +104,7 @@ if __name__ == "__main__":
         opening=True,
         since=start_ts,
         until=end_ts,
+        lastFen=True,
     )
 
     # Get games as-is from lichess API
@@ -98,10 +122,13 @@ if __name__ == "__main__":
     ]
 
     # write raw data from API
-    output_folder = "output"
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
-    output_filename = os.path.join(output_folder, "games.csv")
-    PipelineHelper.write_to_csv(pgn_data_pers, output_filename)
+
+    output_filename = os.path.join(output_folder, output_filename)
+    if output_format == "parquet":
+        PipelineHelper.write_to_parquet(pgn_data_pers, output_filename)
+    else:
+        PipelineHelper.write_to_csv(pgn_data_pers, output_filename)
 
     print(f"Done! {len(pgn_data_raw)} games have been saved to '{output_filename}' ")

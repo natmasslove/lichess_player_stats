@@ -45,6 +45,9 @@ class PGNGameHeader:
 
     GameId: Optional[str] = None
 
+    FEN: Optional[str] = None
+    SetUp: Optional[str] = None
+
 
 class APIParams_GetGames(TypedDict):
     # >= 1356998400070 Download games played since this timestamp. Defaults to account creation date
@@ -161,6 +164,11 @@ class LichessAPIHelper:
             if game is None:
                 break
 
-            output.append(PGNGameHeader(**dict(game.headers)))
+            try:
+                output.append(PGNGameHeader(**dict(game.headers)))
+            except Exception as e:
+                print(f"Error parsing game headers: {e}")
+                print(dict(game.headers))
+                raise e
 
         return output
