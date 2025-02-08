@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from dataclasses import fields, dataclass, asdict
+from enum import Enum
 from typing import Optional
 
 import pandas as pd
@@ -9,6 +10,31 @@ import pyarrow as pa
 import csv
 
 from helpers.lichess_api_helper import PGNGameHeader
+
+
+@dataclass
+class TimeControlThreshold:
+    name: str
+    estimated_time_max: int  # In seconds
+
+
+class TimeControlType(Enum):
+    ULTRA_BULLET = "UltraBullet"
+    HYPER_BULLET = "HyperBullet"
+    BULLET = "Bullet"
+    BLITZ = "Blitz"
+    RAPID = "Rapid"
+    CLASSIC = "Classic"
+
+
+TIME_CONTROL_THRESHOLDS = [
+    TimeControlThreshold(TimeControlType.ULTRA_BULLET.value, 29),
+    TimeControlThreshold(TimeControlType.HYPER_BULLET.value, 59),
+    TimeControlThreshold(TimeControlType.BULLET.value, 179),
+    TimeControlThreshold(TimeControlType.BLITZ.value, 599),
+    TimeControlThreshold(TimeControlType.RAPID.value, 1799),
+    TimeControlThreshold(TimeControlType.CLASSIC.value, float("inf")),  # No upper bound
+]
 
 
 @dataclass
@@ -29,7 +55,13 @@ class PGNGameHeaderStandardized:
     BlackRatingChange: Optional[float] = None
 
     Variant: Optional[str] = None
+
+    # User-friendly time control in format "minutes initial + seconds increment". For hyper and ultra bullet: '½', '¼'
     TimeControl: Optional[str] = None
+    # Original time control in format "seconds initial + seconds increment"
+    TimeControlSec: Optional[str] = None
+    # Ultrabullet / Hyperbullet / Bullet / Blitz / Rapid / Classic
+    TimeControlType: Optional[str] = None
 
     ECO: Optional[str] = None
     OpeningFamily: Optional[str] = None
@@ -71,21 +103,6 @@ class PGNGameHeaderStandardized:
             return None
 
     @classmethod
-    def parse_time_control(cls, time_control: str) -> str:
-        time_control_minutes = None
-        time_control_increment = None
-        if time_control:
-            try:
-                initial, increment = map(int, time_control.split("+"))
-                time_control_minutes = initial // 60
-                time_control_increment = increment
-                return f"{time_control_minutes}+{time_control_increment}"
-            except ValueError:
-                pass
-        else:
-            return None
-
-    @classmethod
     def split_opening(
         cls, opening: str
     ) -> tuple[
@@ -113,6 +130,41 @@ class PGNGameHeaderStandardized:
         return family, variation, subvariation
 
     @classmethod
+    def parse_timecontrol(cls, tc: str) -> tuple[float, int]:
+        """Parses a chess time control string (e.g., '180+2') into (minutes, increment)."""
+        initial, increment = map(int, tc.split("+"))
+        return initial / 60, increment
+
+    @classmethod
+    def format_timecontrol(cls, minutes: float, increment: int) -> str:
+        """Formats the parsed time control values into a readable format."""
+        fraction_map = {0.5: "½", 0.25: "¼"}
+        if minutes in fraction_map:
+            initial_str = fraction_map[minutes]
+        elif minutes < 1:
+            initial_str = "0"
+        else:
+            initial_str = str(int(minutes))
+
+        return f"{initial_str}+{increment}"
+
+    @classmethod
+    def calculate_estimated_time(cls, minutes: float, increment: int) -> int:
+        """Calculates estimated game time in seconds: initial time + 40 moves * increment."""
+        return int(minutes * 60) + 40 * increment
+
+    @classmethod
+    def get_timecontrol_type(cls, minutes: float, increment: int) -> str:
+        """Determines the time control type based on estimated game time."""
+        estimated_time = cls.calculate_estimated_time(minutes, increment)
+
+        for threshold in TIME_CONTROL_THRESHOLDS:
+            if estimated_time <= threshold.estimated_time_max:
+                return threshold.name
+
+        return TimeControlType.CLASSIC.value
+
+    @classmethod
     def from_pgn_header(cls, pgn_header: PGNGameHeader):
         outp = PGNGameHeaderStandardized()
         outp.Event = pgn_header.Event
@@ -135,7 +187,10 @@ class PGNGameHeaderStandardized:
         outp.BlackRatingChange = cls.str_to_float(pgn_header.BlackRatingDiff)
 
         outp.Variant = pgn_header.Variant
-        outp.TimeControl = cls.parse_time_control(pgn_header.TimeControl)
+        outp.TimeControlSec = pgn_header.TimeControl
+        mins_initial, secs_increment = cls.parse_timecontrol(pgn_header.TimeControl)
+        outp.TimeControl = cls.format_timecontrol(mins_initial, secs_increment)
+        outp.TimeControlType = cls.get_timecontrol_type(mins_initial, secs_increment)
 
         outp.ECO = pgn_header.ECO
 
@@ -174,6 +229,8 @@ class PGNGameHeaderPersonified:
 
     Variant: Optional[str] = None
     TimeControl: Optional[str] = None
+    TimeControlSec: Optional[str] = None
+    TimeControlType: Optional[str] = None
 
     ECO: Optional[str] = None
     OpeningFamily: Optional[str] = None
@@ -226,6 +283,8 @@ class PGNGameHeaderPersonified:
         outp.UTCDateTime = pgn_header_std.UTCDateTime
         outp.Variant = pgn_header_std.Variant
         outp.TimeControl = pgn_header_std.TimeControl
+        outp.TimeControlSec = pgn_header_std.TimeControlSec
+        outp.TimeControlType = pgn_header_std.TimeControlType
         outp.ECO = pgn_header_std.ECO
         outp.OpeningFamily = pgn_header_std.OpeningFamily
         outp.OpeningVariation = pgn_header_std.OpeningVariation
