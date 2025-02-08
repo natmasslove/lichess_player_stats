@@ -1,5 +1,6 @@
 .env
 local_test*.py
+local*.ipynb
 output/*
 
 # Byte-compiled / optimized / DLL files
