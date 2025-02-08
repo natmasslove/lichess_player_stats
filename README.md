@@ -1,6 +1,12 @@
 
 # Extract Player's game data for analysis
 
+TLDR;  
+Step 1: Download your games using export_games.py script.  
+Step 2: Analyze data with any tool which can read CSV or parquet files.  
+
+More detailed recommendations for both steps:
+
 ## Extracting Games Using the Lichess API
 
 This section explains how to retrieve a list of a user's games in CSV format using the Lichess API, enabling further analysis.
@@ -40,7 +46,9 @@ python export_games.py -h
 
 There are many ways to analyze downloaded file:
 
-1. Load CSV files in Microsoft Excel and, then, use Pivot tables for analysis
-2. Use BI tools like PowerBI desktop (which you can run for free on your computer) and load CSV file as a data source
-3. Use Jupyter notebook - see an example `csv_analysis.ipynb`
-4. Use query engines. One example could be AWS Athena.
+1. Load CSV files in **Microsoft Excel** and, then, use Pivot tables for analysis
+2. Use BI tools like **PowerBI desktop** (which you can run for free on your computer) and load CSV file as a data source
+3. Use **Jupyter notebook** - see an example `csv_analysis.ipynb`
+4. Use query engines. One example could be **AWS Athena**.
+5. 👉🚀 **Use DuckDB**. Easy-to-use (just pip install), super-fast and SQL-compliant. See demo in `duckdb_analysis.ipynb`.
+
