@@ -109,9 +109,14 @@ class LichessAPIHelper:
 
     @classmethod
     def generate_timestamps_msec(cls, start_date: str, end_date: str):
-        # Convert string to datetime objects
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        def parse_date(date_str):
+            try:
+                return datetime.strptime(date_str, "%Y-%m-%d")
+            except ValueError:
+                raise ValueError(f"Invalid date format: '{date_str}'. Use YYYY-MM-DD.")
+
+        start_dt = parse_date(start_date)
+        end_dt = parse_date(end_date)
 
         # Set times for start and end
         start_timestamp = (
