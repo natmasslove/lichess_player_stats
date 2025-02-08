@@ -27,12 +27,13 @@ class TimeControlType(Enum):
     CLASSIC = "Classic"
 
 
+# according to Lichess FAQ: https://lichess.org/faq#time-controls
 TIME_CONTROL_THRESHOLDS = [
     TimeControlThreshold(TimeControlType.ULTRA_BULLET.value, 29),
     TimeControlThreshold(TimeControlType.HYPER_BULLET.value, 59),
     TimeControlThreshold(TimeControlType.BULLET.value, 179),
-    TimeControlThreshold(TimeControlType.BLITZ.value, 599),
-    TimeControlThreshold(TimeControlType.RAPID.value, 1799),
+    TimeControlThreshold(TimeControlType.BLITZ.value, 479),
+    TimeControlThreshold(TimeControlType.RAPID.value, 1499),
     TimeControlThreshold(TimeControlType.CLASSIC.value, float("inf")),  # No upper bound
 ]
 
