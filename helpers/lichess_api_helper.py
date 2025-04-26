@@ -41,6 +41,8 @@ class PGNGameHeader:
 
     WhiteTitle: Optional[str] = None
     BlackTitle: Optional[str] = None
+    WhiteFideId: Optional[str] = None
+    BlackFideId: Optional[str] = None
     Termination: Optional[str] = None
 
     GameId: Optional[str] = None
